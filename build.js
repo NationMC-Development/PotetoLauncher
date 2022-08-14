@@ -18,8 +18,8 @@ function getCurrentPlatform(){
 builder.build({
     targets: (process.argv[2] != null && Platform[process.argv[2]] != null ? Platform[process.argv[2]] : getCurrentPlatform()).createTarget(),
     config: {
-        appId: 'numalauncher',
-        productName: 'NumaLauncher',
+        appId: 'potetolauncher',
+        productName: 'PotetoLauncher',
         artifactName: '${productName}-setup-${version}.${ext}',
         copyright: 'Copyright © 2018-2020 Daniel Scalzi, 2020 Kamesuta',
         directories: {
@@ -46,10 +46,10 @@ builder.build({
         },
         linux: {
             target: 'AppImage',
-            maintainer: 'Daniel Scalzi, Kamesuta',
-            vendor: 'Daniel Scalzi, Kamesuta',
-            synopsis: '沼でも使えるMinecraftランチャー',
-            description: '参加型に参加するためのすべてがここに。Mod、コンフィグ、アップデートが全自動で揃います。',
+            maintainer: 'Daniel Scalzi, mumeinosato',
+            vendor: 'Daniel Scalzi, mumeinosato',
+            synopsis: 'ぽてとランチャー',
+            description: 'ぽてさん神',
             category: 'Game'
         },
         compression: 'maximum',

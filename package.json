@@ -1,13 +1,13 @@
 {
-  "name": "numalauncher",
+  "name": "potetolauncher",
   "version": "2.0.5",
-  "productName": "NumaLauncher",
+  "productName": "PotetoLauncher",
   "description": "ぽてとランチャー",
   "author": "Daniel Scalzi (https://github.com/dscalzi/), mumeinosato (https://github.com/mumeinosato/)",
   "license": "UNLICENSED",
   "homepage": "https://github.com/NationMC-Development/PotetoLauncher",
   "bugs": {
-    "url": "https://github.com/TeamKun/NumaLauncher/issues"
+    "url": "https://github.com/NationMC-Development/PotetoLauncher/issues"
   },
   "private": true,
   "main": "index.js",
