@@ -6,10 +6,10 @@ const logger = require('./loggerutil')('%c[ConfigManager]', 'color: #a02d2a; fon
 
 const sysRoot = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME)
 // TODO change
-const dataPath = path.join(sysRoot, '.numalauncher')
+const dataPath = path.join(sysRoot, '.helioslauncher')
 
 // Forked processes do not have access to electron, so we have this workaround.
-const launcherDir = process.env.CONFIG_DIRECT_PATH || require('electron').remote.app.getPath('userData')
+const launcherDir = process.env.CONFIG_DIRECT_PATH || require('@electron/remote').app.getPath('userData')
 
 /**
  * Retrieve the absolute path of the launcher directory.
@@ -76,8 +76,10 @@ const DEFAULT_CONFIG = {
             maxRAM: resolveMaxRAM(), // Dynamic
             executable: null,
             jvmOptions: [
-                '-Xmn1G',
-                '-Dfile.encoding=utf-8'
+                '-XX:+UseConcMarkSweepGC',
+                '-XX:+CMSIncrementalMode',
+                '-XX:-UseAdaptiveSizePolicy',
+                '-Xmn128M'
             ],
         },
         game: {
@@ -89,7 +91,6 @@ const DEFAULT_CONFIG = {
         },
         launcher: {
             allowPrerelease: false,
-            optionStandardize: true,
             dataDirectory: dataPath
         }
     },
@@ -102,8 +103,7 @@ const DEFAULT_CONFIG = {
     selectedServer: null, // Resolved
     selectedAccount: null,
     authenticationDatabase: {},
-    modConfigurations: [],
-    microsoftAuth: {}
+    modConfigurations: []
 }
 
 let config = null
@@ -318,15 +318,38 @@ exports.getAuthAccount = function(uuid){
 }
 
 /**
- * Update the access token of an authenticated account.
+ * Update the access token of an authenticated mojang account.
  * 
  * @param {string} uuid The uuid of the authenticated account.
  * @param {string} accessToken The new Access Token.
  * 
  * @returns {Object} The authenticated account object created by this action.
  */
-exports.updateAuthAccount = function(uuid, accessToken){
+exports.updateMojangAuthAccount = function(uuid, accessToken){
     config.authenticationDatabase[uuid].accessToken = accessToken
+    config.authenticationDatabase[uuid].type = 'mojang' // For gradual conversion.
+    return config.authenticationDatabase[uuid]
+}
+
+/**
+ * Adds an authenticated mojang account to the database to be stored.
+ * 
+ * @param {string} uuid The uuid of the authenticated account.
+ * @param {string} accessToken The accessToken of the authenticated account.
+ * @param {string} username The username (usually email) of the authenticated account.
+ * @param {string} displayName The in game name of the authenticated account.
+ * 
+ * @returns {Object} The authenticated account object created by this action.
+ */
+exports.addMojangAuthAccount = function(uuid, accessToken, username, displayName){
+    config.selectedAccount = uuid
+    config.authenticationDatabase[uuid] = {
+        type: 'mojang',
+        accessToken,
+        username: username.trim(),
+        uuid: uuid.trim(),
+        displayName: displayName.trim()
+    }
     return config.authenticationDatabase[uuid]
 }
 
@@ -342,34 +365,12 @@ exports.updateAuthAccount = function(uuid, accessToken){
  * 
  * @returns {Object} The authenticated account object created by this action.
  */
-exports.updateAuthAccountWithMicrosoft = function(uuid, mcAccessToken, msAccessToken, msRefreshToken, msExpires, mcExpires){
-    config.authenticationDatabase[uuid].accessToken = mcAccessToken
+exports.updateMicrosoftAuthAccount = function(uuid, accessToken, msAccessToken, msRefreshToken, msExpires, mcExpires) {
+    config.authenticationDatabase[uuid].accessToken = accessToken
     config.authenticationDatabase[uuid].expiresAt = mcExpires
     config.authenticationDatabase[uuid].microsoft.access_token = msAccessToken
     config.authenticationDatabase[uuid].microsoft.refresh_token = msRefreshToken
     config.authenticationDatabase[uuid].microsoft.expires_at = msExpires
-    return config.authenticationDatabase[uuid]
-}
-
-/**
- * Adds an authenticated mojang account to the database to be stored.
- * 
- * @param {string} uuid The uuid of the authenticated account.
- * @param {string} accessToken The accessToken of the authenticated account.
- * @param {string} username The username (usually email) of the authenticated account.
- * @param {string} displayName The in game name of the authenticated account.
- * 
- * @returns {Object} The authenticated account object created by this action.
- */
-exports.addAuthAccount = function(uuid, accessToken, username, displayName){
-    config.selectedAccount = uuid
-    config.authenticationDatabase[uuid] = {
-        accessToken,
-        username: username.trim(),
-        uuid: uuid.trim(),
-        displayName: displayName.trim(),
-        type: 'mojang'
-    }
     return config.authenticationDatabase[uuid]
 }
 
@@ -386,15 +387,15 @@ exports.addAuthAccount = function(uuid, accessToken, username, displayName){
  * 
  * @returns {Object} The authenticated account object created by this action.
  */
-exports.addMsAuthAccount = function(uuid, accessToken, name, mcExpires, msAccessToken, msRefreshToken, msExpires){
+exports.addMicrosoftAuthAccount = function(uuid, accessToken, name, mcExpires, msAccessToken, msRefreshToken, msExpires) {
     config.selectedAccount = uuid
     config.authenticationDatabase[uuid] = {
+        type: 'microsoft',
         accessToken,
         username: name.trim(),
         uuid: uuid.trim(),
         displayName: name.trim(),
         expiresAt: mcExpires,
-        type: 'microsoft',
         microsoft: {
             access_token: msAccessToken,
             refresh_token: msRefreshToken,
@@ -738,12 +739,4 @@ exports.getAllowPrerelease = function(def = false){
  */
 exports.setAllowPrerelease = function(allowPrerelease){
     config.settings.launcher.allowPrerelease = allowPrerelease
-}
-
-exports.getoptionStandardize = function(def = false){
-    return !def ? config.settings.launcher.optionStandardize : DEFAULT_CONFIG.settings.launcher.optionStandardize
-}
-
-exports.setoptionStandardize = function(optionStandardize){
-    config.settings.launcher.optionStandardize = optionStandardize
 }

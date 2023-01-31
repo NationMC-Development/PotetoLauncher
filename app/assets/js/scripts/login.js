@@ -22,7 +22,7 @@ const loginMSButton         = document.getElementById('loginMSButton')
 // Control variables.
 let lu = false, lp = false
 
-const loggerLogin = LoggerUtil('%c[Login]', 'color: #000668; font-weight: bold')
+const loggerLogin = LoggerUtil1('%c[Login]', 'color: #000668; font-weight: bold')
 
 
 /**
@@ -263,7 +263,7 @@ loginButton.addEventListener('click', () => {
     // Show loading stuff.
     loginLoading(true)
 
-    AuthManager.addAccount(loginUsername.value, loginPassword.value).then((value) => {
+    AuthManager.addMojangAccount(loginUsername.value, loginPassword.value).then((value) => {
         updateSelectedAccount(value)
         loginButton.innerHTML = loginButton.innerHTML.replace(Lang.queryJS('login.loggingIn'), Lang.queryJS('login.success'))
         $('.circle-loader').toggleClass('load-complete')
@@ -384,7 +384,21 @@ ipcRenderer.on('MSALoginWindowReply', (event, ...args) => {
     }).catch(error => {
         loginMSButton.disabled = false
         loginLoading(false)
-        setOverlayContent('ERROR', error.message ? error.message : 'Microsoftでのログイン中にエラーが発生しました！詳細については、ログを確認してください。 CTRL + SHIFT + Iで開くことができます。', Lang.queryJS('login.tryAgain'))
+
+        let actualDisplayableError
+        if(isDisplayableError(displayableError)) {
+            msftLoginLogger.error('Error while logging in.', displayableError)
+            actualDisplayableError = displayableError
+        } else {
+            // Uh oh.
+            msftLoginLogger.error('Unhandled error during login.', displayableError)
+            actualDisplayableError = {
+                title: 'Unknown Error During Login',
+                desc: 'An unknown error has occurred. Please see the console for details.'
+            }
+        }
+
+        setOverlayContent(actualDisplayableError.title, actualDisplayableError.desc, Lang.queryJS('login.tryAgain'))
         setOverlayHandler(() => {
             formDisabled(false)
             toggleOverlay(false)

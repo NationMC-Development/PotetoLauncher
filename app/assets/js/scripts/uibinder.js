@@ -16,9 +16,11 @@ let fatalStartupError = false
 // Mapping of each view to their container IDs.
 const VIEWS = {
     landing: '#landingContainer',
+    loginOptions: '#loginOptionsContainer',
     login: '#loginContainer',
     settings: '#settingsContainer',
-    welcome: '#welcomeContainer'
+    welcome: '#welcomeContainer',
+    waiting: '#waitingContainer'
 }
 
 // The currently shown view container.
@@ -61,13 +63,12 @@ function showMainUI(data){
         loggerAutoUpdater.log('Initializing..')
         ipcRenderer.send('autoUpdateAction', 'initAutoUpdater', ConfigManager.getAllowPrerelease())
     }
-    ipcRenderer.send('autoUpdateAction', 'initAutoUpdater', ConfigManager.getAllowPrerelease())
 
     prepareSettings(true)
     updateSelectedServer(data.getServer(ConfigManager.getSelectedServer()))
     refreshServerStatus()
     setTimeout(() => {
-        document.getElementById('frameBar').style.backgroundColor = 'rgba(0, 0, 0, 0.85)'
+        document.getElementById('frameBar').style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
         document.body.style.backgroundImage = `url('assets/images/backgrounds/${document.body.getAttribute('bkid')}.jpg')`
         $('#main').show()
 
@@ -87,8 +88,11 @@ function showMainUI(data){
                 currentView = VIEWS.landing
                 $(VIEWS.landing).fadeIn(1000)
             } else {
-                currentView = VIEWS.login
-                $(VIEWS.login).fadeIn(1000)
+                loginOptionsCancelEnabled(false)
+                loginOptionsViewOnLoginSuccess = VIEWS.landing
+                loginOptionsViewOnLoginCancel = VIEWS.loginOptions
+                currentView = VIEWS.loginOptions
+                $(VIEWS.loginOptions).fadeIn(1000)
             }
         }
 
@@ -100,11 +104,9 @@ function showMainUI(data){
         
     }, 750)
     // Disable tabbing to the news container.
-/*
     initNews().then(() => {
         $('#newsContainer *').attr('tabindex', '-1')
     })
-*/
 }
 
 function showFatalStartupError(){
@@ -112,9 +114,9 @@ function showFatalStartupError(){
         $('#loadingContainer').fadeOut(250, () => {
             document.getElementById('overlayContainer').style.background = 'none'
             setOverlayContent(
-                '致命的なエラー: Modパックリストを読み込めませんでした。',
-                'ファイルサーバーに接続できなかったため、Modパックリストをダウンロードできませんでした。キャッシュもロードできませんでした。<br><br>Modパックリストは最新のModパックの情報を提供するために必要不可欠です。これなしではランチャーは起動できません。インターネットに繋がれているか確認し、ランチャーを再起動してください。',
-                '閉じる'
+                'Fatal Error: Unable to Load Distribution Index',
+                'A connection could not be established to our servers to download the distribution index. No local copies were available to load. <br><br>The distribution index is an essential file which provides the latest server information. The launcher is unable to start without it. Ensure you are connected to the internet and relaunch the application.',
+                'Close'
             )
             setOverlayHandler(() => {
                 const window = remote.getCurrentWindow()
@@ -133,7 +135,7 @@ function showFatalStartupError(){
 function onDistroRefresh(data){
     updateSelectedServer(data.getServer(ConfigManager.getSelectedServer()))
     refreshServerStatus()
-    //initNews()
+    initNews()
     syncModConfigurations(data)
 }
 
@@ -320,36 +322,58 @@ function refreshDistributionIndex(remote, onSuccess, onError){
 async function validateSelectedAccount(){
     const selectedAcc = ConfigManager.getSelectedAccount()
     if(selectedAcc != null){
-        let val
-        try {
-            val = await AuthManager.validateSelected()
-        } catch(error) {
-        }
+        const val = await AuthManager.validateSelected()
         if(!val){
             ConfigManager.removeAuthAccount(selectedAcc.uuid)
             ConfigManager.save()
             const accLen = Object.keys(ConfigManager.getAuthAccounts()).length
             setOverlayContent(
-                'ログアウトされました',
-                `アカウント <strong>${selectedAcc.displayName}</strong> のログイン状態が解除されました。${accLen > 0 ? '別のアカウントを選択するか' : ''} 再度ログインし直してください。`,
-                'ログイン',
-                '別のアカウントを選択'
+                'Failed to Refresh Login',
+                `We were unable to refresh the login for <strong>${selectedAcc.displayName}</strong>. Please ${accLen > 0 ? 'select another account or ' : ''} login again.`,
+                'Login',
+                'Select Another Account'
             )
             setOverlayHandler(() => {
-                document.getElementById('loginUsername').value = selectedAcc.username
-                validateEmail(selectedAcc.username)
-                loginViewOnSuccess = getCurrentView()
-                loginViewOnCancel = getCurrentView()
-                if(accLen > 0){
-                    loginViewCancelHandler = () => {
-                        ConfigManager.addAuthAccount(selectedAcc.uuid, selectedAcc.accessToken, selectedAcc.username, selectedAcc.displayName)
+
+                const isMicrosoft = selectedAcc.type === 'microsoft'
+
+                if(isMicrosoft) {
+                    // Empty for now
+                } else {
+                    // Mojang
+                    // For convenience, pre-populate the username of the account.
+                    document.getElementById('loginUsername').value = selectedAcc.username
+                    validateEmail(selectedAcc.username)
+                }
+                
+                loginOptionsViewOnLoginSuccess = getCurrentView()
+                loginOptionsViewOnLoginCancel = VIEWS.loginOptions
+
+                if(accLen > 0) {
+                    loginOptionsViewOnCancel = getCurrentView()
+                    loginOptionsViewCancelHandler = () => {
+                        if(isMicrosoft) {
+                            ConfigManager.addMicrosoftAuthAccount(
+                                selectedAcc.uuid,
+                                selectedAcc.accessToken,
+                                selectedAcc.username,
+                                selectedAcc.expiresAt,
+                                selectedAcc.microsoft.access_token,
+                                selectedAcc.microsoft.refresh_token,
+                                selectedAcc.microsoft.expires_at
+                            )
+                        } else {
+                            ConfigManager.addMojangAuthAccount(selectedAcc.uuid, selectedAcc.accessToken, selectedAcc.username, selectedAcc.displayName)
+                        }
                         ConfigManager.save()
                         validateSelectedAccount()
                     }
-                    loginCancelEnabled(true)
+                    loginOptionsCancelEnabled(true)
+                } else {
+                    loginOptionsCancelEnabled(false)
                 }
                 toggleOverlay(false)
-                switchView(getCurrentView(), VIEWS.login)
+                switchView(getCurrentView(), VIEWS.loginOptions)
             })
             setDismissHandler(() => {
                 if(accLen > 1){
@@ -367,7 +391,6 @@ async function validateSelectedAccount(){
                 }
             })
             toggleOverlay(true, accLen > 0)
-            return false
         } else {
             return true
         }

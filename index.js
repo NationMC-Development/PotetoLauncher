@@ -2,15 +2,17 @@ require('dotenv').config()
 
 // Requirements
 const { app, BrowserWindow, ipcMain, Menu, shell, session } = require('electron')
-const autoUpdater = require('electron-updater').autoUpdater
-const ejse = require('ejs-electron')
-const fs = require('fs')
 const fsExtra = require('fs-extra')
-const isDev = require('./app/assets/js/isdev')
-const path = require('path')
-const semver = require('semver')
 const url = require('url')
 const crypto = require('crypto')
+const autoUpdater                       = require('electron-updater').autoUpdater
+const ejse                              = require('ejs-electron')
+const fs                                = require('fs')
+const isDev                             = require('./app/assets/js/isdev')
+const path                              = require('path')
+const semver                            = require('semver')
+const { pathToFileURL }                 = require('url')
+const { AZURE_CLIENT_ID, MSFT_OPCODE, MSFT_REPLY_TYPE, MSFT_ERROR } = require('./app/assets/js/ipcconstants')
 
 const redirectUriPrefix = 'https://login.microsoftonline.com/common/oauth2/nativeclient?'
 const clientID = 'ce9c7ade-7cee-4c4c-83bc-0c0edafdcaea'
@@ -252,6 +254,8 @@ ipcMain.on('distributionIndexDone', (event, res) => {
 // Disable hardware acceleration.
 // https://electronjs.org/docs/tutorial/offscreen-rendering
 app.disableHardwareAcceleration()
+
+
 
 let MSALoginWindow = null
 
