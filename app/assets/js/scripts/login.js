@@ -394,7 +394,7 @@ ipcRenderer.on('MSALoginWindowReply', (event, ...args) => {
             msftLoginLogger.error('Unhandled error during login.', displayableError)
             actualDisplayableError = {
                 title: 'Unknown Error During Login',
-                desc: 'An unknown error has occurred. Please see the console for details.'
+                desc: 'エラー１'
             }
         }
 

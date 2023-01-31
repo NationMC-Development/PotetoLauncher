@@ -20,7 +20,7 @@ const { MojangRestAPI, mojangErrorDisplayable, MojangErrorCode } = require('heli
 const { MicrosoftAuth, microsoftErrorDisplayable, MicrosoftErrorCode} = require('helios-core/microsoft')
 const AZURE_CLIENT_ID = require('./ipcconstants')
 
-const log = LoggerUtil.getLogger('AuthManager')
+//const log = LoggerUtil.getLogger('AuthManager')
 
 // Functions
 

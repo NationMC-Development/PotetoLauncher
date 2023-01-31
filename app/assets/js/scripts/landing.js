@@ -856,41 +856,16 @@ let newsArr = null
 
 // News load animation listener.
 let newsLoadingListener = null
-
-/**
- * Set the news loading animation.
- * 
- * @param {boolean} val True to set loading animation, otherwise false.
- */
-function setNewsLoading(val){
-    if(val){
-        const nLStr = 'Checking for News'
-        let dotStr = '..'
-        nELoadSpan.innerHTML = nLStr + dotStr
-        newsLoadingListener = setInterval(() => {
-            if(dotStr.length >= 3){
-                dotStr = ''
-            } else {
-                dotStr += '.'
-            }
-            nELoadSpan.innerHTML = nLStr + dotStr
-        }, 750)
-    } else {
-        if(newsLoadingListener != null){
-            clearInterval(newsLoadingListener)
-            newsLoadingListener = null
-        }
-    }
-}
-
-// Bind retry button.
+/* Bind retry button.
 newsErrorRetry.onclick = () => {
     $('#newsErrorFailed').fadeOut(250, () => {
         initNews()
         $('#newsErrorLoading').fadeIn(250)
     })
 }
+*/
 
+/*
 newsArticleContentScrollable.onscroll = (e) => {
     if(e.target.scrollTop > Number.parseFloat($('.newsArticleSpacerTop').css('height'))){
         newsContent.setAttribute('scrolled', '')
@@ -898,6 +873,7 @@ newsArticleContentScrollable.onscroll = (e) => {
         newsContent.removeAttribute('scrolled')
     }
 }
+*/
 
 /**
  * Reload the news without restarting.
@@ -905,6 +881,7 @@ newsArticleContentScrollable.onscroll = (e) => {
  * @returns {Promise.<void>} A promise which resolves when the news
  * content has finished loading and transitioning.
  */
+/**
 function reloadNews(){
     return new Promise((resolve, reject) => {
         $('#newsContent').fadeOut(250, () => {
@@ -915,6 +892,7 @@ function reloadNews(){
         })
     })
 }
+*/
 
 let newsAlertShown = false
 
@@ -924,115 +902,6 @@ let newsAlertShown = false
 function showNewsAlert(){
     newsAlertShown = true
     $(newsButtonAlert).fadeIn(250)
-}
-
-/**
- * Initialize News UI. This will load the news and prepare
- * the UI accordingly.
- * 
- * @returns {Promise.<void>} A promise which resolves when the news
- * content has finished loading and transitioning.
- */
-function initNews(){
-
-    return new Promise((resolve, reject) => {
-        setNewsLoading(true)
-
-        let news = {}
-        loadNews().then(news => {
-
-            newsArr = news.articles || null
-
-            if(newsArr == null){
-                // News Loading Failed
-                setNewsLoading(false)
-
-                $('#newsErrorLoading').fadeOut(250, () => {
-                    $('#newsErrorFailed').fadeIn(250, () => {
-                        resolve()
-                    })
-                })
-            } else if(newsArr.length === 0) {
-                // No News Articles
-                setNewsLoading(false)
-
-                ConfigManager.setNewsCache({
-                    date: null,
-                    content: null,
-                    dismissed: false
-                })
-                ConfigManager.save()
-
-                $('#newsErrorLoading').fadeOut(250, () => {
-                    $('#newsErrorNone').fadeIn(250, () => {
-                        resolve()
-                    })
-                })
-            } else {
-                // Success
-                setNewsLoading(false)
-
-                const lN = newsArr[0]
-                const cached = ConfigManager.getNewsCache()
-                let newHash = crypto.createHash('sha1').update(lN.content).digest('hex')
-                let newDate = new Date(lN.date)
-                let isNew = false
-
-                if(cached.date != null && cached.content != null){
-
-                    if(new Date(cached.date) >= newDate){
-
-                        // Compare Content
-                        if(cached.content !== newHash){
-                            isNew = true
-                            showNewsAlert()
-                        } else {
-                            if(!cached.dismissed){
-                                isNew = true
-                                showNewsAlert()
-                            }
-                        }
-
-                    } else {
-                        isNew = true
-                        showNewsAlert()
-                    }
-
-                } else {
-                    isNew = true
-                    showNewsAlert()
-                }
-
-                if(isNew){
-                    ConfigManager.setNewsCache({
-                        date: newDate.getTime(),
-                        content: newHash,
-                        dismissed: false
-                    })
-                    ConfigManager.save()
-                }
-
-                const switchHandler = (forward) => {
-                    let cArt = parseInt(newsContent.getAttribute('article'))
-                    let nxtArt = forward ? (cArt >= newsArr.length-1 ? 0 : cArt + 1) : (cArt <= 0 ? newsArr.length-1 : cArt - 1)
-            
-                    displayArticle(newsArr[nxtArt], nxtArt+1)
-                }
-
-                document.getElementById('newsNavigateRight').onclick = () => { switchHandler(true) }
-                document.getElementById('newsNavigateLeft').onclick = () => { switchHandler(false) }
-
-                $('#newsErrorContainer').fadeOut(250, () => {
-                    displayArticle(newsArr[0], 1)
-                    $('#newsContent').fadeIn(250, () => {
-                        resolve()
-                    })
-                })
-            }
-
-        })
-        
-    })
 }
 
 /**
@@ -1058,30 +927,6 @@ document.addEventListener('keydown', (e) => {
         }
     }
 })
-
-/**
- * Display a news article on the UI.
- * 
- * @param {Object} articleObject The article meta object.
- * @param {number} index The article index.
- */
-function displayArticle(articleObject, index){
-    newsArticleTitle.innerHTML = articleObject.title
-    newsArticleTitle.href = articleObject.link
-    newsArticleAuthor.innerHTML = 'by ' + articleObject.author
-    newsArticleDate.innerHTML = articleObject.date
-    newsArticleComments.innerHTML = articleObject.comments
-    newsArticleComments.href = articleObject.commentsLink
-    newsArticleContentScrollable.innerHTML = '<div id="newsArticleContentWrapper"><div class="newsArticleSpacerTop"></div>' + articleObject.content + '<div class="newsArticleSpacerBot"></div></div>'
-    Array.from(newsArticleContentScrollable.getElementsByClassName('bbCodeSpoilerButton')).forEach(v => {
-        v.onclick = () => {
-            const text = v.parentElement.getElementsByClassName('bbCodeSpoilerText')[0]
-            text.style.display = text.style.display === 'block' ? 'none' : 'block'
-        }
-    })
-    newsNavigationStatus.innerHTML = index + ' of ' + newsArr.length
-    newsContent.setAttribute('article', index-1)
-}
 
 /**
  * Load news information from the RSS feed specified in the
