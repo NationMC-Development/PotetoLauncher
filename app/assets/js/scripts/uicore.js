@@ -49,7 +49,7 @@ if(!isDev){
                 loggerAutoUpdaterSuccess.log('New update available', info.version)
                 
                 if(process.platform === 'darwin'){
-                    info.darwindownload = `https://github.com/NationMC-Development/PotetoLauncher/releases/download/v${info.version}/PotetoLauncher-setup-${info.version}.dmg`
+                    info.darwindownload = `https://github.com/NationMC-Development/PotetoLauncher/releases/download/v${info.version}/PotetoLauncher-setup-${info.version}.exe`
                     showUpdateUI(info)
                 }
                 
