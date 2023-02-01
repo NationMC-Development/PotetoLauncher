@@ -1,6 +1,5 @@
 require('dotenv').config()
 
-
 // Requirements
 const { app, BrowserWindow, ipcMain, Menu, shell, session } = require('electron')
 const fsExtra = require('fs-extra')
@@ -392,7 +391,6 @@ function createWindow() {
         },
         backgroundColor: '#171614'
     })
-    remoteMain.enable(win.webContents)
 
     ejse.data('bkid', Math.floor((Math.random() * fs.readdirSync(path.join(__dirname, 'app', 'assets', 'images', 'backgrounds')).length)))
     ejse.data('appver', app.getVersion())
