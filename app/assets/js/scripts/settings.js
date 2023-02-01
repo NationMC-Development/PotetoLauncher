@@ -10,9 +10,10 @@ const settingsState = {
     invalid: new Set()
 }
 
-function bindSettingsSelect() {
-    for (let ele of document.getElementsByClassName('settingsSelectContainer')) {
+function bindSettingsSelect(){
+    for(let ele of document.getElementsByClassName('settingsSelectContainer')) {
         const selectedDiv = ele.getElementsByClassName('settingsSelectSelected')[0]
+
         selectedDiv.onclick = (e) => {
             e.stopPropagation()
             closeSettingsSelect(e.target)
@@ -122,42 +123,47 @@ function initSettingsValidators() {
 /**
  * Load configuration values onto the UI. This is an automated process.
  */
-function initSettingsValues() {
+function initSettingsValues(){
     const sEls = document.getElementById('settingsContainer').querySelectorAll('[cValue]')
     Array.from(sEls).map((v, index, arr) => {
         const cVal = v.getAttribute('cValue')
+        const serverDependent = v.hasAttribute('serverDependent') // Means the first argument is the server id.
         const gFn = ConfigManager['get' + cVal]
-        if (typeof gFn === 'function') {
-            if (v.tagName === 'INPUT') {
-                if (v.type === 'number' || v.type === 'text') {
+        const gFnOpts = []
+        if(serverDependent) {
+            gFnOpts.push(ConfigManager.getSelectedServer())
+        }
+        if(typeof gFn === 'function'){
+            if(v.tagName === 'INPUT'){
+                if(v.type === 'number' || v.type === 'text'){
                     // Special Conditions
-                    if (cVal === 'JavaExecutable') {
+                    if(cVal === 'JavaExecutable'){
+                        v.value = gFn.apply(null, gFnOpts)
                         populateJavaExecDetails(v.value)
-                        v.value = gFn()
-                    } else if (cVal === 'DataDirectory') {
-                        v.value = gFn()
-                    } else if (cVal === 'JVMOptions') {
-                        v.value = gFn().join(' ')
+                    } else if (cVal === 'DataDirectory'){
+                        v.value = gFn.apply(null, gFnOpts)
+                    } else if(cVal === 'JVMOptions'){
+                        v.value = gFn.apply(null, gFnOpts).join(' ')
                     } else {
-                        v.value = gFn()
+                        v.value = gFn.apply(null, gFnOpts)
                     }
-                } else if (v.type === 'checkbox') {
-                    v.checked = gFn()
+                } else if(v.type === 'checkbox'){
+                    v.checked = gFn.apply(null, gFnOpts)
                 }
-            } else if (v.tagName === 'DIV') {
-                if (v.classList.contains('rangeSlider')) {
+            } else if(v.tagName === 'DIV'){
+                if(v.classList.contains('rangeSlider')){
                     // Special Conditions
-                    if (cVal === 'MinRAM' || cVal === 'MaxRAM') {
-                        let val = gFn()
-                        if (val.endsWith('M')) {
-                            val = Number(val.substring(0, val.length - 1)) / 1000
+                    if(cVal === 'MinRAM' || cVal === 'MaxRAM'){
+                        let val = gFn.apply(null, gFnOpts)
+                        if(val.endsWith('M')){
+                            val = Number(val.substring(0, val.length-1))/1000
                         } else {
                             val = Number.parseFloat(val)
                         }
 
                         v.setAttribute('value', val)
                     } else {
-                        v.setAttribute('value', Number.parseFloat(gFn()))
+                        v.setAttribute('value', Number.parseFloat(gFn.apply(null, gFnOpts)))
                     }
                 }
             }
@@ -169,41 +175,56 @@ function initSettingsValues() {
 /**
  * Save the settings values.
  */
-function saveSettingsValues() {
+function saveSettingsValues(){
     const sEls = document.getElementById('settingsContainer').querySelectorAll('[cValue]')
     Array.from(sEls).map((v, index, arr) => {
         const cVal = v.getAttribute('cValue')
+        const serverDependent = v.hasAttribute('serverDependent') // Means the first argument is the server id.
         const sFn = ConfigManager['set' + cVal]
-        if (typeof sFn === 'function') {
-            if (v.tagName === 'INPUT') {
-                if (v.type === 'number' || v.type === 'text') {
+        const sFnOpts = []
+        if(serverDependent) {
+            sFnOpts.push(ConfigManager.getSelectedServer())
+        }
+        if(typeof sFn === 'function'){
+            if(v.tagName === 'INPUT'){
+                if(v.type === 'number' || v.type === 'text'){
                     // Special Conditions
-                    if (cVal === 'JVMOptions') {
-                        sFn(v.value.split(' '))
+                    if(cVal === 'JVMOptions'){
+                        if(!v.value.trim()) {
+                            sFnOpts.push([])
+                            sFn.apply(null, sFnOpts)
+                        } else {
+                            sFnOpts.push(v.value.trim().split(/\s+/))
+                            sFn.apply(null, sFnOpts)
+                        }
                     } else {
-                        sFn(v.value)
+                        sFnOpts.push(v.value)
+                        sFn.apply(null, sFnOpts)
                     }
-                } else if (v.type === 'checkbox') {
-                    sFn(v.checked)
+                } else if(v.type === 'checkbox'){
+                    sFnOpts.push(v.checked)
+                    sFn.apply(null, sFnOpts)
                     // Special Conditions
-                    if (cVal === 'AllowPrerelease') {
+                    if(cVal === 'AllowPrerelease'){
                         changeAllowPrerelease(v.checked)
                     }
                 }
-            } else if (v.tagName === 'DIV') {
-                if (v.classList.contains('rangeSlider')) {
+            } else if(v.tagName === 'DIV'){
+                if(v.classList.contains('rangeSlider')){
                     // Special Conditions
-                    if (cVal === 'MinRAM' || cVal === 'MaxRAM') {
+                    if(cVal === 'MinRAM' || cVal === 'MaxRAM'){
                         let val = Number(v.getAttribute('value'))
-                        if (val % 1 > 0) {
-                            val = val * 1000 + 'M'
+                        if(val%1 > 0){
+                            val = val*1000 + 'M'
                         } else {
                             val = val + 'G'
                         }
 
-                        sFn(val)
+                        sFnOpts.push(val)
+                        sFn.apply(null, sFnOpts)
                     } else {
-                        sFn(v.getAttribute('value'))
+                        sFnOpts.push(v.getAttribute('value'))
+                        sFn.apply(null, sFnOpts)
                     }
                 }
             }
@@ -296,8 +317,16 @@ const settingsNavDone = document.getElementById('settingsNavDone')
  * 
  * @param {boolean} v True to disable, false to enable.
  */
-function settingsSaveDisabled(v) {
+function settingsSaveDisabled(v){
     settingsNavDone.disabled = v
+}
+
+function fullSettingsSave() {
+    saveSettingsValues()
+    saveModConfiguration()
+    ConfigManager.save()
+    saveDropinModConfiguration()
+    saveShaderpackSettings()
 }
 
 /* Closes the settings view and saves all data. */
@@ -308,6 +337,7 @@ settingsNavDone.onclick = () => {
     saveDropinModConfiguration()
     saveShaderpackSettings()
     switchView(getCurrentView(), VIEWS.landing)
+    fullSettingsSave()
 }
 
 /**
@@ -459,7 +489,7 @@ function bindAuthAccountLogOut() {
                 isLastAccount = true
                 setOverlayContent(
                     '注意<br>これはログインしている最後のアカウントです',
-                    '沼ランチャーを使うためには、最低1個のアカウントにログインしている必要があります。<br>ログアウトしたら、もう一度ログインしないといけなくなります。<br><br>本当にログアウトする？',
+                    'ぽてとぽてとランチャーを使うためには、最低1個のアカウントにログインしている必要があります。<br>ログアウトしたら、もう一度ログインしないといけなくなります。<br><br>本当にログアウトする？',
                     '分かってるよそんなこと',
                     'やっぱやめとく'
                 )
@@ -488,20 +518,9 @@ let msAccDomElementCache
  * @param {Element} val The log out button element.
  * @param {boolean} isLastAccount If this logout is on the last added account.
  */
-function processLogOut(val, isLastAccount, skip = false) {
-    data = {
-        val,
-        isLastAccount
-    }
+function processLogOut(val, isLastAccount){
     const parent = val.closest('.settingsAuthAccount')
     const uuid = parent.getAttribute('uuid')
-    if (!skip) {
-        const account = ConfigManager.getAuthAccount(uuid)
-        if (account.type === 'microsoft') {
-            toggleOverlay(true, false, 'msOverlay')
-            ipcRenderer.send('openMSALogoutWindow', 'open')
-        }
-    }
     const prevSelAcc = ConfigManager.getSelectedAccount()
     const targetAcc = ConfigManager.getAuthAccount(uuid)
     if(targetAcc.type === 'microsoft') {

@@ -1,26 +1,22 @@
 /**
  * AuthManager
- *
+ * 
  * This module aims to abstract login procedures. Results from Mojang's REST api
  * are retrieved through our Mojang module. These results are processed and stored,
  * if applicable, in the config using the ConfigManager. All login procedures should
  * be made through this module.
- *
+ * 
  * @module authmanager
  */
 // Requirements
-const ConfigManager = require('./configmanager')
-const LoggerUtil = require('./loggerutil')
-const Mojang = require('./mojang')
-const Microsoft = require('./microsoft')
-const logger = LoggerUtil('%c[AuthManager]', 'color: #a02d2a; font-weight: bold')
-const loggerSuccess = LoggerUtil('%c[AuthManager]', 'color: #209b07; font-weight: bold')
-const RestResponseStatus = require('helios-core/common')
+const ConfigManager          = require('./configmanager')
+const { LoggerUtil }         = require('helios-core')
+const { RestResponseStatus } = require('helios-core/common')
 const { MojangRestAPI, mojangErrorDisplayable, MojangErrorCode } = require('helios-core/mojang')
-const { MicrosoftAuth, microsoftErrorDisplayable, MicrosoftErrorCode} = require('helios-core/microsoft')
-const AZURE_CLIENT_ID = require('./ipcconstants')
+const { MicrosoftAuth, microsoftErrorDisplayable, MicrosoftErrorCode } = require('helios-core/microsoft')
+const { AZURE_CLIENT_ID }    = require('./ipcconstants')
 
-//const log = LoggerUtil.getLogger('AuthManager')
+const log = LoggerUtil.getLogger('AuthManager')
 
 // Functions
 
@@ -128,7 +124,7 @@ async function fullMicrosoftAuthFlow(entryCode, authMode) {
  * @param {number} epiresInS Expires in (seconds)
  * @returns 
  */
-async function calculateExpiryDate(nowMs, epiresInS) {
+function calculateExpiryDate(nowMs, epiresInS) {
     return nowMs + ((epiresInS-10)*1000)
 }
 
@@ -249,7 +245,7 @@ async function validateSelectedMojangAccount(){
 async function validateSelectedMicrosoftAccount(){
     const current = ConfigManager.getSelectedAccount()
     const now = new Date().getTime()
-    const mcExpiresAt = Date.parse(current.expiresAt)
+    const mcExpiresAt = current.expiresAt
     const mcExpired = now >= mcExpiresAt
 
     if(!mcExpired) {
@@ -258,7 +254,7 @@ async function validateSelectedMicrosoftAccount(){
 
     // MC token expired. Check MS token.
 
-    const msExpiresAt = Date.parse(current.microsoft.expires_at)
+    const msExpiresAt = current.microsoft.expires_at
     const msExpired = now >= msExpiresAt
 
     if(msExpired) {
